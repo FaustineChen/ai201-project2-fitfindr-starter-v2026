@@ -63,24 +63,25 @@ If nothing in the data matches (for example, "designer ballgown size XXS under $
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Filters the listings file by keyword match on description, optional size, and optional price ceiling. It does not call the LLM.
+- **Inputs:** `description` (str), `size` (str | None), `max_price` (float | None)
+- **Returns:** A list of listing dicts, best match first. Each dict has `id`, `title`, `description`, `category`, `style_tags` (list), `size`, `condition`, `price` (float), `colors` (list), `brand` (str or None), `platform`.
+- **When it has nothing:** Returns an empty list (not None, no exception). The loop sets `session["error"]` and ends early.
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Calls the LLM with the selected listing and the user's wardrobe, and asks for one or two outfits that pair the new item with wardrobe pieces. If the wardrobe is empty, it asks for general styling advice for the item instead.
+- **Inputs:** `new_item` (dict, one listing as returned by `search_listings`: `id`, `title`, `description`, `category`, `style_tags`, `size`, `condition`, `price`, `colors`, `brand`, `platform`), `wardrobe` (dict with an `items` key holding a list of the user's owned pieces; may be empty)
+- **Returns:** A non-empty string with one or two outfit suggestions.
+- **When it has nothing:** With an empty wardrobe it returns general styling advice, never `""` and never an exception.
+
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Calls the LLM to turn the outfit suggestion into a short social-post-style caption about the find, mentioning the item, price, and platform once each, with a specific vibe.
+- **Inputs:** `outfit` (str, the output of `suggest_outfit` for this same item), `new_item` (dict, the same selected listing passed to `suggest_outfit`)
+- **Returns:** A two-to-four sentence caption (str).
+- **When it has nothing:** If `outfit` is empty or whitespace, it returns a descriptive message (e.g. "No outfit suggestion available."), no exception.
 
 ---
 
