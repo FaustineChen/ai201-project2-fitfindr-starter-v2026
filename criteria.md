@@ -28,6 +28,8 @@ tool calls and returns a fit card — in at least 4 of 5 tries.
 <!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
      "my search is a plain keyword match and some phrasings will miss" is a
      real answer. -->
+Search is a plain keyword match, so some phrasings of a query that should match will still miss the listings' wording.
+Two of the three tools also call the LLM, so an API error, timeout, or truncated response can end a run before the fit card is produced. 4 of 5 allows for that occasional failure
 
 ---
 
@@ -39,10 +41,11 @@ Given a query that matches no listings, the agent stops before calling
 **Why this target:**
 <!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
      about this path? -->
+An empty list from `search_listings` is a deterministic result, and the loop's branch on it is plain code. If it fails even once, it is a bug (such as calling `suggest_outfit`), so 5 of 5 is the right bar.
 
 ---
 
-## 3. Something about state
+## 3. The selected item is the same item that reaches both downstream tools
 
 <!-- YOU WRITE THIS ONE.
 
@@ -53,16 +56,16 @@ Given a query that matches no listings, the agent stops before calling
      look like state failure — it looks like a tool problem. Something that
      compares session["selected_item"] against what actually reached
      suggest_outfit is the shape you're after. -->
-
-
+In 5 of 5 runs with a matching query, `session["selected_item"]["id"]` equals `session["search_results"][0]["id"]`, and the `new_item` received by `suggest_outfit` and by `create_fit_card` has that same `id`.
+Checked by asserting the id at each call.
 
 **Why this target:**
-
-
+Passing state through the session: either the loop writes the first search result into `selected_item` , or it does not. Any mismatch is a bug, so 5 of 5 is the right bar.
+Listing ids are unique, so comparing `id` is a short, countable check of whether the same listing reached every tool.
 
 ---
 
-## 4. Something about the fit card
+## 4. The fit card contains what the spec requires
 
 <!-- YOU WRITE THIS ONE.
 
@@ -74,16 +77,15 @@ Given a query that matches no listings, the agent stops before calling
      mentions the price? Two different items producing the same opening
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
-
-
+In at least 4 of 5 runs (using different matching queries, including one with an empty wardrobe), the fit card is 2 to 4 sentences, mentions the item's price exactly once, and mentions the platform name exactly once.
+A sentence is a segment ending in `.`, `!`, or `?` followed by whitespace or the end of the text, so `$38.00` does not split a sentence. Price and platform are checked by string search in the caption.
 
 **Why this target:**
-
-
+The prompt asks for these elements, but the model is not guaranteed to follow it. The model's output varies run to run, so 5 of 5 would make the target depend on that variance. 4 of 5 still catches a prompt that fails regularly.
 
 ---
 
-## 5. Your choice
+## 5. Search results respect the size and price filters
 
 <!-- YOU WRITE THIS ONE TOO.
 
@@ -91,11 +93,10 @@ Given a query that matches no listings, the agent stops before calling
      wardrobe path, what happens when the model can't be reached, whether the
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
-
-
+For 5 of 5 test queries that state a size or max price, every listing in `session["search_results"]` satisfies the size and price that stated in the query, not the values found in `session["parsed"]`. This catches both a parse that drops the constraint and a search that fails to apply it.
 
 **Why this target:**
-
+Filtering is plain code with no model variance, so 5 of 5 is the right bar. This failure is easy to miss because the agent still completes all three tools and produces a plausible fit card. The data also makes size matching easy to get wrong: a plain substring test lets "s" match "us 9" and "l" match "xl", so the criterion checks the rule I wrote in the Tool Inventory.
 
 
 ---
