@@ -40,7 +40,11 @@
 ## What This Does
 
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
+## What This Does
 
+A user describes a secondhand clothing item in plain language, such as "vintage graphic tee under $30" or "platform sneakers size 8", including constraints like price, size, style, or color.
+The agent searches the listings file for items that match those constraints and returns the best matches.
+If nothing in the data matches (for example, "designer ballgown size XXS under $5"), it says so instead of returning unrelated results.
 
 
 ---
