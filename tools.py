@@ -20,12 +20,33 @@ That last line is what your loop branches on. "Returns a list" earns nothing —
 the description has to say what is *in* the list.
 """
 
-import config  # noqa: F401 — you'll use this in search_listings
+import config # noqa: F401 — you'll use this in search_listings
 from generate import generate
 from utils.data_loader import load_listings
+import re
 
 
 # ── Tool 1: search_listings ───────────────────────────────────────────────────
+def _tokens(text: str) -> set[str]:
+    """Lowercase words, with a trailing 's' stripped so 'tees' matches 'tee'."""
+    words = re.findall(r"[a-z0-9]+", text.lower())
+    return {w[:-1] if len(w) > 3 and w.endswith("s") else w for w in words if len(w) > 1}
+
+def _size_matches(wanted: str, listing_size: str) -> bool:
+    """
+    Check whether a listing's size matches the size the user asked for.
+
+    Both strings are split into tokens on anything that isn't a letter or digit, 
+    and every token in `wanted` must appear among the listing's tokens. (case-insensitive)
+
+    Returns True if every wanted token is in the listing's tokens, else False.
+    Examples: "M" matches "S/M"; "s" does not match "us 9"; "L" does not
+    match "XL" or "W30 L30"; "oversized" matches "XL (oversized)" and
+    "One Size / Oversized". An empty `wanted` returns False.
+    """
+    wanted_tokens = re.findall(r"[a-z0-9]+", wanted.lower())
+    listing_tokens = set(re.findall(r"[a-z0-9]+", listing_size.lower()))
+    return bool(wanted_tokens) and all(t in listing_tokens for t in wanted_tokens)
 
 def search_listings(
     description: str,
@@ -78,8 +99,29 @@ def search_listings(
     Test it from a terminal before you move on:
         python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
     """
-    # TODO: replace this with your implementation
-    return []
+    query_words = _tokens(description)
+    scored = []
+
+    for listing in load_listings():
+        # 2. filters
+        if max_price is not None and listing["price"] > max_price:
+            continue
+        if size is not None and not _size_matches(size, listing["size"]):
+            continue
+
+        # 3. score: keyword overlap with title, description, style_tags
+        text = " ".join(
+            [listing["title"], listing["description"], " ".join(listing["style_tags"])]
+        )
+        score = len(query_words & _tokens(text))
+
+        # 4. drop zero scores
+        if score > 0:
+            scored.append((score, listing))
+
+    # 5. highest score first, ties broken by lower price
+    scored.sort(key=lambda pair: (-pair[0], pair[1]["price"]))
+    return [listing for _, listing in scored[: config.SEARCH_RESULT_LIMIT]]
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────

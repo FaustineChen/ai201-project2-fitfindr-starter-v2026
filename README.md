@@ -63,10 +63,10 @@ If nothing in the data matches (for example, "designer ballgown size XXS under $
 
 ### `search_listings`
 
-- **What it does:** Filters the listings file by keyword match on description, optional size, and optional price ceiling. It does not call the LLM.
+- **What it does:**  Filters listings by max price (inclusive) and by size (whole-token, case-insensitive match, so "M" matches "S/M" but "s" does not match "us 9"). Scores the rest by the number of description keywords found in `title`, `description`, and `style_tags`, drops zero scores, and ranks by score with ties broken by lower price. Returns at most `config.SEARCH_RESULT_LIMIT` results. It does not call the LLM.
 - **Inputs:** `description` (str), `size` (str | None), `max_price` (float | None)
 - **Returns:** A list of listing dicts, best match first. Each dict has `id`, `title`, `description`, `category`, `style_tags` (list), `size`, `condition`, `price` (float), `colors` (list), `brand` (str or None), `platform`.
-- **When it has nothing:** Returns an empty list (not None, no exception). The loop sets `session["error"]` and ends early.
+- **When it has nothing:** Returns an empty list (not None, no exception). The loop checks for this, sets `session["error"]` and stops before `suggest_outfit`
 
 ### `suggest_outfit`
 
