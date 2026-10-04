@@ -127,15 +127,32 @@ $ python app.py ask '...'
 ```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
 
-```
-
-```
-$ python -c "from tools import suggest_outfit; ..."
+[{'id': 'lst_001', 'title': "Vintage Levi's 501 Jeans — Medium Wash", 'description': 'Classic 501s in a perfect medium wash. Some light fading at the knees which adds to the vintage look. No rips or stains.', 'category': 'bottoms', 'style_tags': ['vintage', 'classic', 'denim', 'streetwear'], 'size': 'W30 L30', 'condition': 'good', 'price': 38.0, 'colors': ['blue', 'indigo'], 'brand': "Levi's", 'platform': 'depop'}]
 
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
+$ python -c from tools import suggest_outfit; from utils.data_loader import get_empty_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_empty_wardrobe()))"
+
+**Outfit 1: Casual Streetwear**
+*   **New item:** Vintage Levi's 501 Jeans
+*   **Top:** White ribbed tank top
+*   **Outerwear:** Oversized grey crewneck sweatshirt (worn layered over the tank or draped over the shoulders)
+*   **Shoes:** Chunky white sneakers
+*   **Accessories:** Black crossbody bag
+
+**Outfit 2: Edgy Casual**
+*   **New item:** Vintage Levi's 501 Jeans
+*   **Top:** Black cropped zip hoodie
+*   **Shoes:** Black combat boots
+*   **Accessories:** Brown leather belt
+
+```
+
+```
+$ python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
+
+I finally found the holy grail of denim on depop and grabbed these vintage Levi's 501 jeans in a medium wash. They were only $38.00 and the fit is absolute perfection. I am going to wear them with crisp white sneakers and a simple cotton t shirt for running weekend errands.
 
 ```
 
