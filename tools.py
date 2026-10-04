@@ -236,5 +236,21 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    if not outfit or not outfit.strip():
+        return "No outfit suggestion available to write a caption from."
+
+    prompt = (
+        "Write an Instagram/Depop-style caption (2 to 4 sentences about a thrift find.\n\n"
+        "from the point of view of a shopper who just BOUGHT this secondhand item. "
+        f"Item: {new_item['title']}\n"
+        f"Price paid: ${new_item['price']:.2f}\n"
+        f"Bought on: {new_item['platform']}\n"
+        f"Outfit idea: {outfit}\n\n"
+        "Rules:\n"
+        "- Sound like a real person posting, not a product description.\n"
+        "- Mention the item, the price, and the platform exactly once each.\n"
+        "- Write the price exactly as shown above.\n"
+        "- Be specific about the vibe of the outfit.\n"
+        "- Plain sentences only: no hashtags, no bullet points, no emoji."
+    )
+    return generate(prompt)
