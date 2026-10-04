@@ -17,6 +17,7 @@ import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
+import re
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -48,6 +49,44 @@ def new_session(query: str, wardrobe: dict) -> dict:
 
 
 # ── planning loop ─────────────────────────────────────────────────────────────
+def parse_query(query: str) -> dict:
+    """Pull description, size, and max_price out of a plain-language query."""
+    text = query
+    max_price = None
+    size = None
+
+    # price: "under $30", "below 30", or a bare "$30"
+    m = (re.search(r"(?:under|below|less than|max|up to)\s*\$?\s*(\d+(?:\.\d+)?)", text, re.I)
+         or re.search(r"\$\s*(\d+(?:\.\d+)?)", text))
+    if m:
+        max_price = float(m.group(1))
+        text = text.replace(m.group(0), " ")
+
+    # size: "one size" first, then "size M", "in size 8", "size W30"
+    m = re.search(r"\bone[\s-]size\b", text, re.I)
+    if m:
+        size = "one size"
+        text = text.replace(m.group(0), " ")
+    else:
+        m = re.search(r"\b(?:in\s+)?size\s+([A-Za-z0-9/]+)", text, re.I)
+        if m:
+            size = m.group(1)
+            text = text.replace(m.group(0), " ")
+
+    # drop filler words, keep the rest as the description
+    text = re.sub(r"\b(looking for|i want|i need|find me|a|an|the|in|for)\b", " ", text, flags=re.I)
+    description = " ".join(text.split())
+
+    return {"description": description, "size": size, "max_price": max_price}
+
+
+def _no_results_message(parsed: dict) -> str:
+    tips = ["use broader keywords (e.g. 'jacket' instead of a specific style)"]
+    if parsed["size"]:
+        tips.append(f"try a different size than '{parsed['size']}'")
+    if parsed["max_price"] is not None:
+        tips.append(f"raise your price limit above ${parsed['max_price']:.0f}")
+    return "No listings matched. You could:\n" + "\n".join(f"  - {t}" for t in tips)
 
 def run_agent(query: str, wardrobe: dict) -> dict:
     """
@@ -106,9 +145,40 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
+    # step = "parse"
+    # count = 0
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    # while step != "done":
+    #     count += 1
+    #     trace.check_iterations(count)
+
+    #     if step == "parse":
+    #         session["parsed"] = parse_query(session["query"])
+    #         step = "search"
+
+    #     elif step == "search":
+    #         session["search_results"] = search_listings(**session["parsed"])
+    #         if not session["search_results"]:          # THE BRANCH
+    #             session["error"] = _no_results_message(session["parsed"])
+    #             return session
+    #         step = "select"
+
+    #     elif step == "select":
+    #         session["selected_item"] = session["search_results"][0]
+    #         step = "outfit"
+
+    #     elif step == "outfit":
+    #         session["outfit_suggestion"] = suggest_outfit(
+    #             session["selected_item"], session["wardrobe"]
+    #         )
+    #         step = "card"
+
+    #     elif step == "card":
+    #         session["fit_card"] = create_fit_card(
+    #             session["outfit_suggestion"], session["selected_item"]
+    #         )
+    #         step = "done"
+
     return session
 
 
