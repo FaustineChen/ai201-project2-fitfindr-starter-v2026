@@ -154,8 +154,50 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    item_desc = (
+        f"{new_item['title']} ({new_item['category']}, size {new_item['size']}, "
+        f"colors: {', '.join(new_item['colors'])}, "
+        f"style: {', '.join(new_item['style_tags'])})"
+    )
+    items = wardrobe.get("items", [])
+
+    if not items:
+        prompt = (
+            f"A shopper is considering this secondhand item: {item_desc}.\n"
+            "They have no saved wardrobe. Start by saying their wardrobe is empty, "
+            "so these ideas use common wardrobe basics. Then give one or two outfits "
+            "Keep it concise."
+            "Rules:\n"
+            "- Only name pieces from the list above as pieces the shopper owns. Do not invent owned pieces.\n"
+            "- If an outfit needs a piece they don't own, label it '(not owned)'.\n"
+            "- If nothing in the list pairs well with the new item, start your reply with "
+            "'Nothing in your wardrobe pairs well with this item.' then give general "
+            "styling advice and say what type of piece they would need.\n"
+        )
+    else:
+        lines = []
+        for w in items:
+            line = f"- {w['name']} ({w['category']}; colors: {', '.join(w['colors'])}; style: {', '.join(w['style_tags'])})"
+            if w.get("notes"):
+                line += f" — {w['notes']}"
+            lines.append(line)
+        owned = "\n".join(lines)
+        prompt = (
+            f"A shopper is considering this secondhand item: {item_desc}.\n"
+            f"They already own:\n{owned}\n\n"
+            "Suggest one or two outfits that pair the new item with pieces "
+            "from the list above. Name the specific pieces they own. If "
+            "nothing in the list pairs well, give general styling advice and "
+            "say what type of piece is missing. Keep it concise."
+        )
+
+    result = generate(prompt)
+
+    if not result.strip():
+        result = generate(prompt, cache=False)  # cache=False: a cached "" would repeat
+    if not result.strip():
+        raise RuntimeError("suggest_outfit: model returned an empty response twice")
+    return result
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────

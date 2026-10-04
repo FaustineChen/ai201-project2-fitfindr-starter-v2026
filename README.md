@@ -71,7 +71,7 @@ If nothing in the data matches (for example, "designer ballgown size XXS under $
 ### `suggest_outfit`
 
 - **What it does:** Calls the LLM with the selected listing and the user's wardrobe, and asks for one or two outfits that pair the new item with wardrobe pieces. If the wardrobe is empty, or has no pieces that pair with the item, it asks for general styling advice for the item instead.
-- **Inputs:** `new_item` (dict, one listing as returned by `search_listings`: `id`, `title`, `description`, `category`, `style_tags`, `size`, `condition`, `price`, `colors`, `brand`, `platform`), `wardrobe` (dict with an `items` key holding a list of the user's owned pieces; may be empty)
+- **Inputs:** `new_item` (dict, one listing as returned by `search_listings`: `id`, `title`, `description`, `category`, `style_tags`, `size`, `condition`, `price`, `colors`, `brand`, `platform`), `wardrobe` (dict with an `items` key holding a list of owned pieces, each with `id`, `name`, `category`, `colors`, `style_tags`, and optional `notes`; may be empty)
 - **Returns:** A non-empty string with one or two outfit suggestions.
 - **When it has nothing:** With an empty wardrobe it returns general styling advice, never `""` and never an exception.
 
