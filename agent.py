@@ -145,39 +145,39 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
-    # step = "parse"
-    # count = 0
+    step = "parse"
+    count = 0
 
-    # while step != "done":
-    #     count += 1
-    #     trace.check_iterations(count)
+    while step != "done":
+        count += 1
+        trace.check_iterations(count)
 
-    #     if step == "parse":
-    #         session["parsed"] = parse_query(session["query"])
-    #         step = "search"
+        if step == "parse":
+            session["parsed"] = parse_query(session["query"])
+            step = "search"
 
-    #     elif step == "search":
-    #         session["search_results"] = search_listings(**session["parsed"])
-    #         if not session["search_results"]:          # THE BRANCH
-    #             session["error"] = _no_results_message(session["parsed"])
-    #             return session
-    #         step = "select"
+        elif step == "search":
+            session["search_results"] = search_listings(**session["parsed"])
+            if not session["search_results"]:          # THE BRANCH
+                session["error"] = _no_results_message(session["parsed"])
+                return session
+            step = "select"
 
-    #     elif step == "select":
-    #         session["selected_item"] = session["search_results"][0]
-    #         step = "outfit"
+        elif step == "select":
+            session["selected_item"] = session["search_results"][0]
+            step = "outfit"
 
-    #     elif step == "outfit":
-    #         session["outfit_suggestion"] = suggest_outfit(
-    #             session["selected_item"], session["wardrobe"]
-    #         )
-    #         step = "card"
+        elif step == "outfit":
+            session["outfit_suggestion"] = suggest_outfit(
+                session["selected_item"], session["wardrobe"]
+            )
+            step = "card"
 
-    #     elif step == "card":
-    #         session["fit_card"] = create_fit_card(
-    #             session["outfit_suggestion"], session["selected_item"]
-    #         )
-    #         step = "done"
+        elif step == "card":
+            session["fit_card"] = create_fit_card(
+                session["outfit_suggestion"], session["selected_item"]
+            )
+            step = "done"
 
     return session
 

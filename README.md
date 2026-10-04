@@ -40,7 +40,6 @@
 ## What This Does
 
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
-## What This Does
 
 A user describes a secondhand clothing item in plain language, such as "vintage graphic tee under $30" or "platform sneakers size 8", including constraints like price, size, style, or color.
 The agent searches the listings file for items that match those constraints and returns the best matches.
@@ -98,13 +97,13 @@ If nothing in the data matches (for example, "designer ballgown size XXS under $
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If `search_listings` returns an empty list, put a message in `session["error"]` that names what the user could change (keywords, size, price limit) and return the session without calling `suggest_outfit` or `create_fit_card`. Otherwise, take the first result as `selected_item` and go to `suggest_outfit`, then `create_fit_card`.
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** Regex (`agent.py::parse_query`). It extracts a price ceiling from phrases like "under $30" or a bare "$30", a size from "size <token>", and treats the remaining text, minus filler words, as the description. No model call.
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** `query` → `parsed` (description, size, max_price) → `search_results` → `selected_item` → `outfit_suggestion` → `fit_card`. `error` is set only when the run ends early. Each tool reads its inputs from the session and writes its result back.
 
 ---
 
