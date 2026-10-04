@@ -173,15 +173,10 @@ I finally found the holy grail of denim on depop and grabbed these vintage Levi'
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
-
-**Moment 2**
-
 - *What I asked for:* I asked Claude for the `create_fit_card` implementation, and it wrote the prompt with a limit of 2 to 4 sentences. I pointed out that a sentence count alone is vague: a model could chain clauses with dashes (`—` or `-`) into one long sentence, since dashes are not sentence-ending punctuation, and still pass the count.
 - *What came back:* A prompt that enforced the 60-word cap. Claude had picked 60 on its own, with no data behind it.
 - *What I changed:* I removed the 60-word cap because it felt too rigid. I kept the sentence-ending definition. Dashes are still a known gap, so I plan to run the tool several times, look at real caption lengths, and decide whether a cap based on that data is needed.
+
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.

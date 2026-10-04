@@ -79,7 +79,6 @@ def parse_query(query: str) -> dict:
 
     return {"description": description, "size": size, "max_price": max_price}
 
-
 def _no_results_message(parsed: dict) -> str:
     tips = ["use broader keywords (e.g. 'jacket' instead of a specific style)"]
     if parsed["size"]:
