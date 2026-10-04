@@ -42,10 +42,9 @@
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
 
 A user describes a secondhand clothing item in plain language, such as "vintage graphic tee under $30" or "platform sneakers size 8", including constraints like price, size, style, or color.
-The agent searches the listings file for items that match those constraints and returns the best matches.
-If nothing in the data matches (for example, "designer ballgown size XXS under $5"), it says so instead of returning unrelated results.
-
-
+The agent searches the resale listings for items that match those constraints and returns the best matches, then suggests one or two outfits that pair it with pieces from the user's wardrobe.
+It finishes with a short social-post-style caption (a "fit card") about the find.
+If nothing in the wordrobe data matches (for example, "designer ballgown size XXS under $5"), it stops and tells the user what to change, such as the keywords, size, or price limit, instead of returning unrelated results.
 ---
 
 ## Tool Inventory
@@ -168,9 +167,9 @@ I finally found the holy grail of denim on depop and grabbed these vintage Levi'
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I gave Claude the `create_fit_card` docstring and asked for the implementation.
+- *What came back:* A prompt that passed the item title, price, and platform. The caption it produced said "I just listed them on depop for $38.00", as if I were the seller.
+- *What I changed:* I rewrote the prompt to say the writer is a shopper who just bought the item, and renamed the fields to "Price paid" and "Bought on". The caption then read as a buyer's post.
 
 **Moment 2**
 
@@ -178,6 +177,11 @@ I finally found the holy grail of denim on depop and grabbed these vintage Levi'
 - *What came back:*
 - *What I changed:*
 
+**Moment 2**
+
+- *What I asked for:* I asked Claude for the `create_fit_card` implementation, and it wrote the prompt with a limit of 2 to 4 sentences. I pointed out that a sentence count alone is vague: a model could chain clauses with dashes (`—` or `-`) into one long sentence, since dashes are not sentence-ending punctuation, and still pass the count.
+- *What came back:* A prompt that enforced the 60-word cap. Claude had picked 60 on its own, with no data behind it.
+- *What I changed:* I removed the 60-word cap because it felt too rigid. I kept the sentence-ending definition. Dashes are still a known gap, so I plan to run the tool several times, look at real caption lengths, and decide whether a cap based on that data is needed.
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.
