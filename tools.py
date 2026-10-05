@@ -168,7 +168,6 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
             "so these ideas use common wardrobe basics. Then give one or two outfits "
             "Keep it concise."
             "Rules:\n"
-            "- Only name pieces from the list above as pieces the shopper owns. Do not invent owned pieces.\n"
             "- If an outfit needs a piece they don't own, label it '(not owned)'.\n"
             "- If nothing in the list pairs well with the new item, start your reply with "
             "'Nothing in your wardrobe pairs well with this item.' then give general "
