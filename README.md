@@ -182,6 +182,11 @@ I finally found the holy grail of denim on depop and grabbed these vintage Levi'
 
      Don't fill these in during unit 3.
      ═══════════════════════════════════════════════════════════════════ -->
+**Moment 1**
+
+- *What I asked for:* I wanted queries a real user might type, like "size L or M" and "size smaller than M", because I expected the size parsing to struggle with them.
+- *What came back:* Claude said these would likely break `parse_query` and suggested defining supported behavior for them in the Tool Inventory (L or M → {L, M}, smaller than M → {XS, S}) so they could go into criterion 5.
+- *What I changed:* I questioned that, because changing the spec to fit the queries means the spec is following the test instead of the other way around. I kept the spec as is, left both queries out of the five criteria, and listed them under What's Still Broken as unsupported.
 
 ---
 
@@ -551,7 +556,7 @@ python app.py ask 'winter parka size XXXL under $1' --trace
 behaved differently afterwards. If the rewire didn't work, say exactly where it
 broke — the error text and the last thing that worked. That earns the point in
 full. -->
-
+move create_fit_card to MCP, all tools behaved the same
 
 
 ---
@@ -564,8 +569,10 @@ full. -->
      `python run_eval.py --label after` -->
 
 **What I changed:**
+In `parse_query` (`agent.py`), a size spelled out after the word "size" is now normalized to the abbreviation the listings use: "small" → "S", "medium" → "M", "large" → "L", "extra large" / "x-large" → "XL". The regex tries these phrases before the generic one-token rule, and any size not in the table is passed through unchanged, so "size M", "size M/L", "size 9" and "size W30" behave as before.
 
 **Which failure it was meant to fix:**
+None of the five criteria was missed, so this is not a fix for a MISSED row. It targets a gap my scenarios did not cover.
 
 ### Run Log — After
 
@@ -835,17 +842,22 @@ I scored this cute Y2K butterfly baby tee on depop for $18.00 and I am already o
 
 <!-- If it made things worse, say that. Honestly reported, that earns full
      credit and is more interesting than one that worked. -->
+Yes, for the gap I found, and nothing else moved. All five criteria were already MET before the change, so no criterion went from MISSED to MET; the change fixes a case my scenarios did not cover.
 
-
+- **Before:** `python app.py ask 'vintage graphic tee in size medium' --trace` returned "No listings matched", and the loop stopped before `suggest_outfit` with an error asking me to change the query. No listing has the token "medium", and `parse_query` passed the raw word through.
+- **After:** the new scenario (matching query completes with spelled-out size) passed 5 of 5 in `run_eval.py --label after`: `size` was parsed as "M", `search_results` was non-empty, and every listing satisfied the size and price in the query.
 
 ---
 
 ## What's Still Broken
-
 <!-- For each criterion still missed: what you'd do, and why you stopped where
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
+No criterion is currently missed. What remains are gaps outside the five criteria, and one target I think is too loose:
 
+- **Criterion 4's target is low.** Both queries passed 5 of 5 against a target of 4 of 5. I would tighten it to 5 of 5 per query. I did not do this in this unit because tightening a number gives nothing to fix.
+- **Multi-size and relative sizes are not supported.** "size L or M" and "size smaller than M" are not handled by `parse_query`. I stopped because that changes the tool's input type and the spec, which is more than the one change I scoped.
+- **Sizes without the word "size" are not parsed.** "medium hoodie" leaves "medium" in the description. Fixing it needs a rule for when a size word is a size and when it is part of a description.
 
 
 <!-- ═════════════════════════════════════════════════════════════════════
