@@ -47,6 +47,10 @@ SCENARIOS = [
         "query": "sneakers size 9 under $60",
         "wardrobe": "example",
         "criterion": 5},
+    {   "name": "matching query completes with spelled-out size",    # Only criterion 5
+        "query": "vintage graphic tee in size medium",
+        "wardrobe": "example",
+        "criterion": 5},
     # TODO: add what your criteria 3, 4 and 5 need.
     #
     # Set "criterion" to the number in criteria.md that the scenario tests.

@@ -50,6 +50,14 @@ def new_session(query: str, wardrobe: dict) -> dict:
 
 
 # ── planning loop ─────────────────────────────────────────────────────────────
+SIZE_WORDS = {
+    "small": "S",
+    "medium": "M",
+    "large": "L",
+    "extra large": "XL",
+    "x large": "XL",
+}
+
 def parse_query(query: str) -> dict:
     """Pull description, size, and max_price out of a plain-language query."""
     text = query
@@ -69,9 +77,20 @@ def parse_query(query: str) -> dict:
         size = "one size"
         text = text.replace(m.group(0), " ")
     else:
-        m = re.search(r"\b(?:in\s+)?size\s+([A-Za-z0-9/]+)", text, re.I)
+        # m = re.search(r"\b(?:in\s+)?size\s+([A-Za-z0-9/]+)", text, re.I)
+        # if m:
+        #     size = m.group(1)
+        #     text = text.replace(m.group(0), " ")
+
+        m = re.search(
+            r"\b(?:in\s+)?size\s+"
+            r"(extra[\s-]large|x[\s-]large|small|medium|large|[A-Za-z0-9/]+)\b",
+            text, re.I,
+        )
         if m:
-            size = m.group(1)
+            raw = m.group(1)
+            key = re.sub(r"[\s-]+", " ", raw.lower())
+            size = SIZE_WORDS.get(key, raw)  # map to S/M/L/XL
             text = text.replace(m.group(0), " ")
 
     # drop filler words, keep the rest as the description
