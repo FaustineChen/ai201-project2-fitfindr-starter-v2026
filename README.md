@@ -256,14 +256,61 @@ that produced it:
 **Happy path**
 
 ```
-
+(.venv) PS C:\Users\Faustine Chen\FC\Master\CodePath\AI201\ai201-project2-fitfindr-starter-v2026> python app.py ask 'Y2K era items that is under $30' --trace
 ```
+[1] parse_query
+      in:  dict with keys: query
+      out: dict with keys: description, size, max_price
+[2] search_listings
+      in:  dict with keys: description, size, max_price
+      out: 5 items: Low-Rise Cargo Pants — Khaki, Biker Shorts — Black, Shiny, Mesh Long-Sleeve Top — Black … +2 more
+[3] select_item
+      in:  5 results
+      out: Low-Rise Cargo Pants — Khaki ($27.0, poshmark)
+      →    results found, picking the first
+[4] suggest_outfit
+      in:  dict with keys: item, wardrobe_items
+      out: **Outfit 1: Y2K Streetwear** *   **New Item:** Low-Rise Cargo Pants *   **Owned Pieces:** Black cropped zip ho…
+[5] create_fit_card (via MCP)
+      in:  item: Low-Rise Cargo Pants — Khaki ($27.0, poshmark) | outfit: **Outfit 1: Y2K Streetwear** *   **New Item:** …
+      out: Scored these low-rise khaki cargo pants on Poshmark for $27.00 and I am already obsessed with them. I am defin…
+
+  Found:    Low-Rise Cargo Pants — Khaki — $27.0 on poshmark
+
+  Outfit:   **Outfit 1: Y2K Streetwear**
+*   **New Item:** Low-Rise Cargo Pants
+*   **Owned Pieces:** Black cropped zip hoodie, Chunky white sneakers, Black crossbody bag
+
+**Outfit 2: Casual Contrast**
+*   **New Item:** Low-Rise Cargo Pants
+*   **Owned Pieces:** White ribbed tank top, Vintage black denim jacket, Black combat boots, Brown leather belt
+
+  Fit card: Scored these low-rise khaki cargo pants on Poshmark for $27.00 and I am already obsessed with them. I am definitely pairing them with my black cropped zip hoodie and chunky white sneakers for a total Y2K streetwear moment. Tomorrow I am switching it up with a white ribbed tank top, my vintage black denim jacket, and combat boots for that effortless casual contrast.
+
+0 model calls this session, 1 served from cache
+
 
 **Empty search**
 
 ```
-
+python app.py ask 'winter parka size XXXL under $1' --trace
 ```
+[1] parse_query
+      in:  dict with keys: query
+      out: dict with keys: description, size, max_price
+[2] search_listings
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+[3] branch: no results
+      →    stopping before suggest_outfit / create_fit_card
+
+  No listings matched. You could:
+  - use broader keywords (e.g. 'jacket' instead of a specific style)
+  - try a different size than 'XXXL'
+  - raise your price limit above $1
+
+0 model calls this session
+
 
 **On the MCP move:** <!-- what changed in your code, and whether anything
 behaved differently afterwards. If the rewire didn't work, say exactly where it

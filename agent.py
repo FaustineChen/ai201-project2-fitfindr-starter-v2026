@@ -14,7 +14,7 @@ Build and test your three tools in `tools.py` first. Then come here.
 """
 
 import config
-import trace
+from trace import step, start_trace, get_trace, check_iterations
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
 import re
@@ -144,36 +144,60 @@ def run_agent(query: str, wardrobe: dict) -> dict:
       • A handler for ModelUnavailable, so a bad key produces a message rather
         than a stack trace. The import is already at the top of this file.
     """
+    start_trace()
+
     session = new_session(query, wardrobe)
-    step = "parse"
+    state = "parse"
     count = 0
 
-    while step != "done":
+    while state != "done":
         count += 1
-        trace.check_iterations(count)
+        check_iterations(count)
 
-        if step == "parse":
+        if state == "parse":
             session["parsed"] = parse_query(session["query"])
-            step = "search"
-
-        elif step == "search":
+            step("parse_query",
+                 inputs={"query": session["query"]},
+                 returned=session["parsed"])
+            state = "search"
+            
+        elif state == "search":
             session["search_results"] = search_listings(**session["parsed"])
+            step("search_listings",
+                 inputs=session["parsed"],
+                 returned=session["search_results"])
+            
             if not session["search_results"]:          # THE BRANCH
                 session["error"] = _no_results_message(session["parsed"])
+                step("branch: no results",
+                     note="stopping before suggest_outfit / create_fit_card")
+                
+                get_trace()
                 return session
-            step = "select"
+            state = "select"
 
-        elif step == "select":
+        elif state == "select":
             session["selected_item"] = session["search_results"][0]
-            step = "outfit"
+            step("select_item",
+                 inputs=f"{len(session['search_results'])} results",
+                 returned=session["selected_item"],
+                 note="results found, picking the first")
+            
+            state = "outfit"
 
-        elif step == "outfit":
+        elif state == "outfit":
             session["outfit_suggestion"] = suggest_outfit(
                 session["selected_item"], session["wardrobe"]
             )
-            step = "card"
+            step("suggest_outfit",
+                 inputs={"item": session["selected_item"].get("title"),
+                         "wardrobe_items": len(session["wardrobe"].get("items", []))
+                         if isinstance(session["wardrobe"], dict) else "wrong data type of wardrobe, need to be dict"},
+                 returned=session["outfit_suggestion"])
+            
+            state = "card"
 
-        elif step == "card":
+        elif state == "card":
             # session["fit_card"] = create_fit_card(
             #     session["outfit_suggestion"], session["selected_item"]
             # )
@@ -183,7 +207,16 @@ def run_agent(query: str, wardrobe: dict) -> dict:
                 "outfit": session["outfit_suggestion"],
                 "new_item": session["selected_item"]
             })
-            step = "done"
+            step("create_fit_card (via MCP)",
+                 inputs=(f"item: {session['selected_item'].get('title')} "
+                         f"(${session['selected_item'].get('price')}, "
+                         f"{session['selected_item'].get('platform')}) | "
+                         f"outfit: {str(session['outfit_suggestion'])[:60]}…"),
+                 returned=session["fit_card"])
+            
+            state = "done"
+
+    get_trace()
 
     return session
 
