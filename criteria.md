@@ -77,11 +77,11 @@ Listing ids are unique, so comparing `id` is a short, countable check of whether
      mentions the price? Two different items producing the same opening
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
-In at least 4 of 5 runs (using different matching queries, including one with an empty wardrobe), the fit card is 2 to 4 sentences, mentions the item's price exactly once, and mentions the platform name exactly once.
+In at least 4 of 5 runs (using two matching queries, including one with an empty wardrobe), the fit card is 2 to 4 sentences, mentions the item's price exactly once, and mentions the platform name exactly once.
 A sentence is a segment ending in `.`, `!`, or `?` followed by whitespace or the end of the text, so `$38.00` does not split a sentence. Price and platform are checked by string search in the caption.
 
 **Why this target:**
-The prompt asks for these elements, but the model is not guaranteed to follow it. The model's output varies run to run, so 5 of 5 would make the target depend on that variance. 4 of 5 still catches a prompt that fails regularly.
+The prompt asks for these elements, but the model is not guaranteed to follow it. The model's output varies run to run, so 5 of 5 would make the target depend on that variance. 4 of 5 still catches a prompt that fails regularly. Each query is judged on its own five runs.
 
 ---
 
@@ -93,10 +93,14 @@ The prompt asks for these elements, but the model is not guaranteed to follow it
      wardrobe path, what happens when the model can't be reached, whether the
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
-For 5 of 5 test queries that state a size or max price, every listing in `session["search_results"]` satisfies the size and price that stated in the query, not the values found in `session["parsed"]`. This catches both a parse that drops the constraint and a search that fails to apply it.
+For 5 of 5 test queries that state a size or max price, `session["search_results"]` is non-empty and every listing in it satisfies the size and price that stated in the query, not the values found in `session["parsed"]`. This catches both a parse that drops the constraint and a search that fails to apply it.
+
+**Change: ** add non-empty search research
 
 **Why this target:**
-Filtering is plain code with no model variance, so 5 of 5 is the right bar. This failure is easy to miss because the agent still completes all three tools and produces a plausible fit card. The data also makes size matching easy to get wrong: a plain substring test lets "s" match "us 9" and "l" match "xl", so the criterion checks the rule I wrote in the Tool Inventory.
+Filtering is plain code with no model variance, so 5 of 5 is the right bar. This failure is easy to miss because the agent still completes all three tools and produces a plausible fit card.
+The data also makes size matching easy to get wrong: a plain substring test lets "s" match "us 9" and "l" match "xl", so the criterion checks the rule I wrote in the Tool Inventory.
+An empty list would satisfy ‘every listing’ vacuously, so non-empty is required; search has no model variance, so each query is judged once and its five runs must agree.
 
 
 ---

@@ -15,7 +15,7 @@ own criteria need — these are a starting point, not a fixed set.
 
 SCENARIOS = [
     {
-        # A query the data can match. Criterion 1.
+        # A query the data can match. Criterion 1, 5
         "name": "matching query completes",
         "query": "vintage graphic tee under $30",
         "wardrobe": "example",
@@ -28,13 +28,25 @@ SCENARIOS = [
         "wardrobe": "example",
         "criterion": 2,
     },
-    {
-        # A user with nothing saved. One of unit 4's three failure modes.
-        "name": "empty wardrobe",
+    {   "name": "fit card, hoodie",      # Criterion 4 and 5
+        "query": "hoodie size L under $40",
+        "wardrobe": "example",
+        "criterion": 4
+    },
+    {   "name": "fit card, empty wardrobe", # Criterion 4 and 5
         "query": "denim jacket under $50",
         "wardrobe": "empty",
-        "criterion": None,
+        "criterion": 4
     },
+    {   "name": "tee or hoodie in size L",                   # Only for criterion 5
+        "query": "tee or hoodie in size L",
+        "wardrobe": "example",
+        "criterion": 5
+    },
+    {   "name": "sneakers size 9 under $60",    # Only criterion 5
+        "query": "sneakers size 9 under $60",
+        "wardrobe": "example",
+        "criterion": 5},
     # TODO: add what your criteria 3, 4 and 5 need.
     #
     # Set "criterion" to the number in criteria.md that the scenario tests.

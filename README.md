@@ -194,17 +194,232 @@ I finally found the holy grail of denim on depop and grabbed these vintage Levi'
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. A matching query completes all three tools (matching query completes) | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. An impossible query stops before the second tool(impossible query stops early) | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. The fit card contains what the spec requires (fit card, hoodie) | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. The fit card contains what the spec requires (fit card, empty wardrobe) | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search results respect the size and price filters (matching query completes) | every query passes | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search results respect the size and price filters (fit card, hoodie) | every query passes | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search results respect the size and price filters (fit card, empty wardrobe) | every query passes | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search results respect the size and price filters (tee or hoodie in size L) | every query passes | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search results respect the size and price filters (sneakers size 9 under $60) | every query passes | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+- Criterion 3 is not in this table because it is checked by check_loop.py, which spies on the ids reaching each tool (five runs, output below); the other four are read from the run_eval.py run log.
+- Rows that name the same scenario are judged from the same five runs.
+
 
 **Real output from one try**, pasted as text, naming the file and function
 that produced it:
 
+**Produced by `check_loop.py` (spying on `agent.run_agent`):**
+
+```
+...
+[1] parse_query
+      in:  dict with keys: query
+      out: dict with keys: description, size, max_price
+[2] search_listings
+      in:  dict with keys: description, size, max_price
+      out: 10 items: Y2K Baby Tee — Butterfly Print, Vintage Band Tee — Faded Grey, Graphic Tee — 2003 Tour Bootleg Style … +7 more
+[3] select_item
+      in:  10 results
+      out: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+      →    results found, picking the first
+[4] suggest_outfit
+      in:  dict with keys: item, wardrobe_items
+      out: **Outfit 1: Casual Y2K Streetwear** *   **New Item:** Y2K Butterfly Baby Tee *   **Bottoms:** Baggy straight-l…
+[5] create_fit_card (via MCP)
+      in:  item: Y2K Baby Tee — Butterfly Print ($18.0, depop) | outfit: **Outfit 1: Casual Y2K Streetwear** *   **New It…
+      out: I am so obsessed with this Y2K butterfly baby tee that I just scored on depop for $18.00. I am definitely styl…
+try 5: PASS  {'selected_item': 'lst_002', 'search_results[0]': 'lst_002', 'suggest_outfit': 'lst_002', 'create_fit_card': 'lst_002'}
+
+5/5
 ```
 
+
+
+**Produced by `python run_eval.py --label before`:**
+
+### matching query completes (Criterion 1, 5)
+
+- Query: `vintage graphic tee under $30`
+- Wardrobe: example
+
+**Try 1**
+
+- stopped early: no
+- selected_item: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+- search_results: 10
+
+Outfit suggestion:
+
+```
+**Outfit 1: Casual Y2K Streetwear**
+*   **New Item:** Y2K Butterfly Baby Tee
+*   **Bottoms:** Baggy straight-leg jeans (dark wash)
+*   **Outerwear:** Vintage black denim jacket (slightly cropped)
+*   **Shoes:** Chunky white sneakers
+*   **Accessories:** Black crossbody bag
+
+**Outfit 2: Edgy Contrast**
+*   **New Item:** Y2K Butterfly Baby Tee
+*   **Shoes:** Black combat boots
+*   *(Optional addition: The baggy jeans or wide-leg khaki trousers)*
+```
+
+Fit card:
+
+```
+I just scored this Y2K butterfly baby tee on Depop for $18.00 and I am completely obsessed with it. I am definitely styling it for casual streetwear with baggy dark wash jeans, a cropped black denim jacket, and chunky white sneakers. Alternatively, I might switch the vibe to something a bit more edgy by pairing the tee with heavy black combat boots.
+```
+
+### impossible query stops early (Criterion 2 — the branch)
+
+- Query: `designer ballgown size XXS under $5`
+- Wardrobe: example
+
+**Try 1**
+
+- stopped early: yes — No listings matched. You could:
+  - use broader keywords (e.g. 'jacket' instead of a specific style)
+  - try a different size than 'XXS'
+  - raise your price limit above $5
+- selected_item: (none)
+- search_results: 0
+
+
+### fit card, hoodie (Criterion 4, 5)
+
+- Query: `hoodie size L under $40`
+- Wardrobe: example
+
+**Try 1**
+
+- stopped early: no
+- selected_item: Vintage Graphic Hoodie — Faded Black ($26.0, depop)
+- search_results: 1
+
+Outfit suggestion:
+
+```
+**Outfit 1: The Ultimate Grunge Streetwear Look**
+*   **New Item:** Vintage Graphic Hoodie (Faded Black)
+*   **Bottoms:** Baggy straight-leg jeans, dark wash
+*   **Shoes:** Black combat boots
+*   **Accessories:** Black crossbody bag
+
+*Why it works:* The faded black graphic hoodie matches the edgy, streetwear, and grunge aesthetic of the baggy dark-wash jeans and combat boots. It leans into an effortless, relaxed silhouette.
+
+**Outfit 2: High-Contrast Casual**
+*   **New Item:** Vintage Graphic Hoodie (Faded Black)
+*   **Bottoms:** Wide-leg khaki trousers
+*   **Shoes:** Chunky white sneakers
+*   **Accessories:** Brown leather belt (threaded through the trousers for contrast)
+
+*Why it works:* Pairing the faded black grunge hoodie with clean, minimal khaki trousers creates a balanced high-low mix of earth tones and vintage streetwear, grounded by chunky white sneakers.
+```
+
+Fit card:
+
+```
+I am so obsessed with this vintage graphic hoodie that I just scored on depop for $26.00. The faded black wash has the absolute best lived-in grunge feel for throwing on with baggy dark jeans and combat boots. I am also planning to style it with clean khaki trousers and chunky white sneakers for an easy high-contrast streetwear look.
+```
+
+### fit card, empty wardrobe (Criterion 4, 5)
+
+- Query: `denim jacket under $50`
+- Wardrobe: empty
+
+**Try 1**
+
+- stopped early: no
+- selected_item: Denim Jacket — Light Wash, Cropped ($42.0, poshmark)
+- search_results: 7
+
+Outfit suggestion:
+
+```
+Your wardrobe is currently empty, so these ideas use common wardrobe basics.
+
+**Outfit 1: Casual Streetwear**
+*   White crewneck t-shirt (not owned)
+*   High-waisted black straight-leg jeans (not owned)
+*   White canvas sneakers (not owned)
+
+**Outfit 2: Double Denim**
+*   Black fitted bodysuit (not owned)
+*   Dark wash relaxed denim jeans (not owned)
+*   Ankle boots (not owned)
+```
+
+Fit card:
+
+```
+I finally found the exact light wash, cropped denim jacket I was hunting for on Poshmark and I only paid $42.00 for it. I am picturing it thrown over a casual streetwear fit with a white crewneck t-shirt, high-waisted black straight-leg jeans, and white canvas sneakers. It would also look so good leaning into a double denim vibe paired with a black fitted bodysuit, dark wash relaxed denim jeans, and ankle boots.
+```
+
+### tee or hoodie in size L (Criterion 5)
+
+- Query: `tee or hoodie in size L`
+- Wardrobe: example
+
+**Try 1**
+
+- stopped early: no
+- selected_item: Vintage Band Tee — Faded Grey ($19.0, depop)
+- search_results: 4
+
+Outfit suggestion:
+
+```
+**Outfit 1: Casual Grunge Streetwear**
+*   **Top:** Vintage Band Tee (New item) layered under the **Black cropped zip hoodie**
+*   **Bottoms:** Baggy straight-leg jeans (dark wash)
+*   **Shoes:** Chunky white sneakers
+*   **Accessories:** Black crossbody bag
+
+**Outfit 2: Edgy Contrast**
+*   **Top:** Vintage Band Tee (New item)
+*   **Outerwear:** Vintage black denim jacket (slightly cropped)
+*   **Bottoms:** Wide-leg khaki trousers
+*   **Shoes:** Black combat boots
+```
+
+Fit card:
+
+```
+I honestly cannot believe I scored this faded grey vintage band tee for only $19.00 on depop. The wash on it is so perfectly worn in and looks amazing layered under my cropped black zip hoodie with baggy jeans and chunky sneakers for a casual grunge streetwear vibe. I am definitely going to wear it next with khaki trousers and combat boots for that effortless edgy contrast.
+```
+
+### sneakers size 9 under $60 (Criterion 5)
+
+- Query: `sneakers size 9 under $60`
+- Wardrobe: example
+
+**Try 1**
+
+- stopped early: no
+- selected_item: Low-Top Canvas Sneakers — Off-White ($20.0, poshmark)
+- search_results: 1
+
+Outfit suggestion:
+
+```
+Here is an effortless outfit combining the new low-top canvas sneakers with your existing wardrobe:
+
+* **Top:** White ribbed tank top
+* **Bottoms:** Baggy straight-leg jeans (dark wash)
+* **Outerwear:** Vintage black denim jacket (worn over the tank)
+* **Shoes:** Low-Top Canvas Sneakers (Off-White)
+* **Accessories:** Black crossbody bag
+
+**Why it works:** The off-white/cream canvas sneakers give a relaxed, classic contrast to the dark indigo denim, while the fitted white tank and black denim jacket tie the minimal streetwear aesthetic together.
+```
+
+Fit card:
+
+```
+I finally scored these low-top canvas sneakers on Poshmark for only $20.00 and I am already obsessed with them. I am pairing them with dark wash baggy jeans, a white ribbed tank, and my favorite vintage black denim jacket for the ultimate minimal streetwear vibe. The cream color of the shoes just ties the whole effortless look together.
 ```
 
 ---
