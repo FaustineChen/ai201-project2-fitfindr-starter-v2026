@@ -444,14 +444,15 @@ I finally scored these low-top canvas sneakers on Poshmark for only $20.00 and I
 
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | A matching query completes all three tools | 4 of 5 | MET (5/5) | All 5 runs of "matching query completes" reached `create_fit_card` and returned a fit card. |
+| 2 | An impossible query stops before the second tool | 5 of 5 | MET (5/5) | All 5 runs stopped with an error message and no `outfit_suggestion`; `suggest_outfit` was never called. |
+| 3 | The selected item is the same item reaching both downstream tools | 5 of 5 | MET (5/5) | `check_loop.py`: in all 5 runs, the ids of `selected_item`, `search_results[0]`, and the `new_item` received by `suggest_outfit` and `create_fit_card` were identical. |
+| 4 | The fit card contains what the spec requires | 4 of 5 per query | MET (hoodie 5/5, empty wardrobe 5/5) | Counted sentences with the segmenting rule and string-searched price and platform in every card; each had 2 to 4 sentences and exactly one price and one platform mention. |
+| 5 | Search results respect the size and price filters | every query passes | MET (5 of 5 queries) | For each query, results were non-empty and every listing's size and price satisfied the query's values; the 5 runs of each query agreed. |
+
 
 **Diagnoses**
-
+No criterion was missed, so there is nothing to diagnose against the five targets.
 
 
 ---
