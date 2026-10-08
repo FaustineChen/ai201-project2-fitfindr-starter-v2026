@@ -60,6 +60,7 @@ works with a direct call, and **a documented failure earns the point in full.**
 from mcp.server.fastmcp import FastMCP
 
 from tools import search_listings as _search_listings_impl  # noqa: F401 — you'll use this below
+from tools import create_fit_card as _create_fit_card_impl
 
 # log_level="WARNING" keeps the server from printing an INFO line for every
 # request. Without it your terminal fills with "Processing request of type
@@ -77,12 +78,25 @@ mcp = FastMCP("fitfindr", log_level="WARNING")
 # ) -> list[dict]:
 #     """
 #     <-- YOUR DESCRIPTION GOES HERE.
-#
+
 #         One or two sentences. What does this tool do, what does it need, and
 #         what does it give back when it finds nothing? Written for a reader
 #         who cannot see the code.
 #     """
 #     return _search_listings_impl(description, size, max_price)
+
+@mcp.tool()
+def create_fit_card(outfit: str, new_item: dict) -> str:
+    """
+    Take the outfit suggestion and the suggested secondhand clothing item from user's ask.
+
+    Returns a two-to-four sentence caption that read like a real post,
+    which mention the item and its price and platform once each, and be specific about the vibe.
+    
+    If `outfit` is empty or whitespace, return "No outfit suggestion available to write a caption from."
+    """
+    import sys; print("MCP create_fit_card called", file=sys.stderr)
+    return _create_fit_card_impl(outfit, new_item)
 #
 # ──────────────────────────────────────────────────────────────────────────────
 #
