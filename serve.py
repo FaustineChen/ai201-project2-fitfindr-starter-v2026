@@ -33,9 +33,12 @@ then deploy it. A structured log you were handed teaches you nothing about
 what belongs in one — and the timing field is the one everybody skips.
 """
 
+import json
 import os
 import sys
 import threading
+import time
+from datetime import datetime, timezone
 
 # config first, and before anything that talks to the model: it loads your .env
 # and fixes the Windows console encoding for every module that imports it.
@@ -43,10 +46,43 @@ import config  # noqa: F401
 
 from flask import Flask, jsonify, request
 
+import generate
 from agent import run_agent
 from utils.data_loader import get_example_wardrobe
 
 app = Flask(__name__)
+
+# ── request log (Capstone, Shape B) ───────────────────────────────────────────
+# Every /ask request that reaches the agent, including failed ones, appends one
+# JSON line to logs/requests.jsonl: timestamp, input, output, error, status
+# ("ok", "stopped_early" or "failed"), duration_s and retry_count. retry_count
+# covers this process only; the MCP subprocess keeps its own counter.
+LOG_PATH = config.ROOT / "logs" / "requests.jsonl"
+
+
+def _log_request(query, session, failure, duration, retries):
+    """Append one log line. A logging problem must never break a response."""
+    if failure is not None:
+        status, output, error = "failed", None, failure
+    elif session.get("error"):
+        status, output, error = "stopped_early", None, session["error"]
+    else:
+        status, output, error = "ok", session.get("fit_card"), None
+    entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "input": query,
+        "output": output,
+        "error": error,
+        "status": status,
+        "duration_s": round(duration, 3),
+        "retry_count": retries,
+    }
+    try:
+        LOG_PATH.parent.mkdir(exist_ok=True)
+        with LOG_PATH.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception as exc:  # noqa: BLE001
+        print(f"  [serve] could not write request log: {exc}", file=sys.stderr)
 
 
 # ── one request at a time ─────────────────────────────────────────────────────
@@ -139,13 +175,18 @@ def ask():
     failure = None
     session = None
     with _one_at_a_time:
+        retries_before = generate.retry_count()
+        started = time.perf_counter()
         try:
             session = run_agent(query, wardrobe)
         except Exception as exc:  # noqa: BLE001 — a 500 with a sentence beats a hang
             failure = f"{type(exc).__name__}: {exc}"
+        duration = time.perf_counter() - started
+        retries = generate.retry_count() - retries_before
 
     # Outside the lock: building a response is not work the next caller should
     # be waiting on.
+    _log_request(query, session, failure, duration, retries)
     if failure is not None:
         return jsonify({"error": failure}), 500
 
@@ -157,7 +198,7 @@ if __name__ == "__main__":
     # listen on through PORT, and it reaches your process from outside the
     # container — bind 127.0.0.1 and nothing but the container itself can
     # connect, which looks exactly like a broken app from the browser.
-    port = int(os.getenv("PORT", "5000"))
+    port = int(os.getenv("PORT", "5001"))
 
     # Never on by default. Flask's debugger executes code typed into a browser,
     # and a deployed app with it on is a stranger's shell. Set AI201_DEBUG=1 in
