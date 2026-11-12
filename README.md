@@ -908,6 +908,17 @@ No criterion is currently missed. What remains are gaps outside the five criteri
 - I'm not adding a fallback model or a response cache for failures.
 - I'm not deploying to a host or adding a UI. Hosting is optional and only if time is left.
 
+### Measure the cost of one run
+
+**Instrumentation**
+<!--Paste at least ten log entries
+-->
+
+**What It Costs**
+
+**how you measured it**
+<!-- Run it ten times, take the average, and write down how you measured it. A number from the pricing page isn't a measurement.
+-->
 
 ### How I Used AI
 
@@ -920,9 +931,7 @@ No criterion is currently missed. What remains are gaps outside the five criteri
 ### Run Log — After
 
 ### What's Still Broken
-and on Provenance Guard Run Log and Verdicts
 
-**what's out of scope:**
 
 
 

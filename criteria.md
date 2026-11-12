@@ -136,3 +136,45 @@ An empty list would satisfy ‘every listing’ vacuously, so non-empty is requi
      A number you missed stays where it is, gets diagnosed, and gets a fix
      attempted. That's where the points are.
      ───────────────────────────────────────────────────────────────────────── -->
+
+## Capstone criteria
+
+---
+
+### 1. A temporary model failure recovers
+
+When the stub fails the first 1, 2, or 3 attempts of a model call (503, dropped
+connection, or empty reply) and then answers normally, `POST /ask` returns a
+session with `error` equal to `None` and a fit card. This must hold in 3 of 3
+trials, one trial for each number of failures.
+
+**Why this target:**
+The failure is injected, so there is no model variance, and 3 of 3 is the right bar.
+
+### 2. A persistent model failure ends with a readable error, in time
+
+When every model attempt fails, `POST /ask` returns a non-empty `error` sentence with no `Traceback` text and no HTTP 500. This must hold in 3 of 3 trials (503, dropped connection, empty reply).
+
+**Why this target:**
+A user who sees a stack trace cannot act on it, but a short sentence tells them to try again. The stub fails the same way every time, so there is no variance and 3 of 3 is the right bar. 
+
+### 3. Retries never exceed the limit
+
+When every model attempt fails, the attempts field in the log is exactly 4 (1 try plus 3 retries), in 3 of 3 trials.
+
+**Why this target:**
+The limit is a constant in `config.py`, so the real risk is an off-by-one in the retry loop: 3 attempts would give up too early and 5 would retry too much. "Exactly 4" catches both, while "at most 4" would not. The 429 path has its own `MAX_RETRIES = 5` and is not counted.
+
+### 4. A hung call or an empty reply is treated as a failure
+
+When the stub hangs forever, the model call is cut off and treated as failed within 22s (the 20 s timeout plus 2s thread and scheduling overhead). When the stub returns an empty string, it is retried and never passed on as a result. Neither case crashes a later tool, and the empty-reply case never produces a blank fit card. This must hold in 3 of 3 trials per case.
+
+**Why this target:**
+Before this change there was no timeout at all, so a hung call blocked the one-request-at-a-time lock and every later request waited behind it. An empty reply used to pass through as `""`, and this system's fit card would have been blank while the run still looked successful, which is the failure this criterion is meant to catch.
+
+### 5. Every request writes one valid log entry, including failures
+
+For a mixed batch of at least 12 requests (successes, a missing `query` returning 400, a temporary failure, and a persistent failure), the log file has exactly one line per request. Each line parses as JSON and has these fields: `timestamp`, `query`, `status`, `error`, `duration_ms`, `attempts`. In 3 of 3 batches, 100% of lines are valid, with no missing fields and no missing requests.
+
+**Why this target:**
+A log that only records successes would pass a weaker test and be useless for diagnosis. The target is 100% because a missing or half-written line cannot be recovered afterwards, and the cost of one is a gap in the evidence for every other criterion.
