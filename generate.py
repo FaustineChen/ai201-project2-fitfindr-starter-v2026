@@ -43,6 +43,7 @@ _prompt_tokens = 0
 _output_tokens = 0
 _client = None
 _budget_warned = False
+_total_retries = 0  # every retry (429 and transient) made by this process
 
 
 class QuotaGuard(Exception):
@@ -156,6 +157,17 @@ def call_count() -> int:
     return _session_calls
 
 
+def retry_count() -> int:
+    """
+    Retries made so far by THIS process (429 and transient errors together).
+
+    Read it before and after a request and subtract to get that request's
+    retries. Calls made in the MCP subprocess are not counted: it is a
+    separate process with its own copy of this counter.
+    """
+    return _total_retries
+
+
 def token_counts() -> dict:
     """
     What this session actually spent, in tokens, as reported by the service.
@@ -220,6 +232,24 @@ def _explain(exc: Exception) -> str:
     return f"Couldn't reach the model: {exc}"
 
 
+class EmptyReply(Exception):
+    """The model answered, but with no text. Retried like a transient error."""
+
+
+_TRANSIENT_MARKERS = (
+    "timeout", "timed out", "503", "unavailable", "overloaded",
+    "connection", "disconnected", "reset by peer",
+)
+
+
+def _is_transient(exc: Exception) -> bool:
+    """True for failures that usually clear up on their own."""
+    if isinstance(exc, EmptyReply):
+        return True
+    message = f"{type(exc).__name__} {exc}".lower()
+    return any(marker in message for marker in _TRANSIENT_MARKERS)
+
+
 def _retry_delay(exc: Exception, attempt: int) -> float:
     """
     How long to wait before retrying a call the service pushed back on.
@@ -245,6 +275,7 @@ def _get_client():
     global _client
     if _client is None:
         from google import genai
+        from google.genai import types
 
         key = os.getenv("GEMINI_API_KEY", "").strip()
         if not key:
@@ -253,7 +284,15 @@ def _get_client():
                 "Copy .env.example to .env and paste your key in, then try "
                 "again. `python test.py` will confirm it's working."
             )
-        _client = genai.Client(api_key=key)
+        
+        # HttpOptions.timeout is in milliseconds
+        # applies to this client's every call
+        _client = genai.Client(
+            api_key=key,
+            http_options=types.HttpOptions(
+                timeout=int(config.REQUEST_TIMEOUT * 1000)
+            ),
+        )
     return _client
 
 
@@ -281,7 +320,7 @@ def generate(
     Every call in this course goes through here. If you need to change how the
     model is called, change it in this one place.
     """
-    global _session_calls, _cache_hits
+    global _session_calls, _cache_hits, _total_retries
 
     use_cache = cache and config.CACHE_ENABLED
     temperature = config.TEMPERATURE if temperature is None else temperature
@@ -296,7 +335,9 @@ def generate(
     _check_budget()
 
     last_error: Exception | None = None
-    for attempt in range(config.MAX_RETRIES):
+    rate_limit_retries = 0   # 429s, bounded by config.MAX_RETRIES
+    transient_retries = 0    # timeouts / 503 / dropped connections / empty replies
+    while rate_limit_retries < config.MAX_RETRIES:
         _wait_for_slot()
         try:
             client = _get_client()
@@ -315,6 +356,9 @@ def generate(
             response = client.models.generate_content(**kwargs)
             _record_tokens(response)
             text = (response.text or "").strip()
+            if not text:
+                # Treated as a transient failure; never cached.
+                raise EmptyReply("The model returned an empty reply.")
 
             if use_cache:
                 _cache_write(key, text)
@@ -328,13 +372,38 @@ def generate(
                 or "resource" in message and "exhaust" in message
                 or "rate" in message and "limit" in message
             )
-            if not rate_limited:
+            if rate_limited:
+                backoff = _retry_delay(exc, rate_limit_retries)
+                rate_limit_retries += 1
+                _total_retries += 1
+                print(
+                    f"  [rate limit] service pushed back. Waiting {backoff:.0f}s "
+                    f"(attempt {rate_limit_retries} of {config.MAX_RETRIES}). "
+                    f"This is the limiter doing its job, not a bug.",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                time.sleep(backoff)
+                continue
+
+            if not _is_transient(exc):
+                # Permanent failure (bad key, unknown model): retrying won't help.
                 raise ModelUnavailable(_explain(exc)) from exc
-            backoff = _retry_delay(exc, attempt)
+
+            if transient_retries >= config.TRANSIENT_MAX_RETRIES:
+                raise ModelUnavailable(
+                    f"The model kept failing: {type(exc).__name__}: {exc} "
+                    f"(gave up after {transient_retries} retries). "
+                    f"Try again in a moment."
+                ) from exc
+
+            backoff = 2.0 ** transient_retries  # 1s, 2s, 4s
+            transient_retries += 1
+            _total_retries += 1
             print(
-                f"  [rate limit] service pushed back. Waiting {backoff:.0f}s "
-                f"(attempt {attempt + 1} of {config.MAX_RETRIES}). This is "
-                f"the limiter doing its job, not a bug.",
+                f"  [retry] temporary failure ({type(exc).__name__}). Waiting "
+                f"{backoff:.0f}s (retry {transient_retries} of "
+                f"{config.TRANSIENT_MAX_RETRIES}).",
                 file=sys.stderr,
                 flush=True,
             )
