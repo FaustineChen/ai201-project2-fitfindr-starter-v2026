@@ -462,7 +462,7 @@ I finally scored these low-top canvas sneakers on Poshmark for only $20.00 and I
 **Diagnoses**
 No criterion was missed, so there is nothing to diagnose against the five targets.
 However my targets were low for criterion 4: it targeted 4 of 5, but both queries passed 5 of 5 (all tests had 2 to 4 sentences and one price and platform mention). I would tighten it to 5 of 5 per query.
-While reviewing parse_query and _size_matches, I found a gap my scenarios did not cover: a spelled-out size like “size medium”. Running python app.py ask 'vintage graphic tee in size medium' --trace (see below). Location: tool (parse_query); mechanism: it passes the raw word after “size” to _size_matches, which compares whole tokens, so “medium” never equals “m”.
+While reviewing parse_query and _size_matches, I found a gap my scenarios did not cover: a spelled-out size like “size medium”. Running python `app.py ask 'vintage graphic tee in size medium' --trace` (see below). Location: tool (parse_query); mechanism: it passes the raw word after “size” to _size_matches, which compares whole tokens, so “medium” never equals “m”.
 
 ```
 [1] parse_query
@@ -895,5 +895,38 @@ No criterion is currently missed. What remains are gaps outside the five criteri
      ═════════════════════════════════════════════════════════════════════ -->
 
 ---
+
+## Capstone
+
+### The Shape
+
+**Shape B: harden against failure**, extending FitFindr's `serve.py` and `generate.py`. For now, only rate-limit (429) errors are retried, there is no timeout, and an empty model reply passes through silently. I'm adding a timeout on every model call, a bounded retry for temporary errors (timeouts, 503, dropped connections, empty replies), and a clear error message when the model keeps failing. Every request, including failed ones, writes a structured log entry with a timestamp, input, output, duration and retry count.
+
+**What's out of scope:**
+
+- I'm not changing the planning loop, the tools, or the search and outfit logic.
+- I'm not adding a fallback model or a response cache for failures.
+- I'm not deploying to a host or adding a UI. Hosting is optional and only if time is left.
+
+
+### How I Used AI
+
+### Run Log — Before
+
+### Verdicts and Diagnoses
+
+### The Improvement
+
+### Run Log — After
+
+### What's Still Broken
+and on Provenance Guard Run Log and Verdicts
+
+**what's out of scope:**
+
+
+
+
+
 
 📖 **How to run this project: [RUNNING.md](RUNNING.md)**
