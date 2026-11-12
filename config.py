@@ -84,9 +84,13 @@ MODEL = os.getenv("AI201_MODEL", "gemini-3.5-flash-lite")
 
 REQUESTS_PER_MINUTE = 15
 SESSION_REQUEST_BUDGET = 300
-MAX_RETRIES = 5
+MAX_RETRIES = 5     # for 429 rate limit
 
 CACHE_DIR = ROOT / ".cache"
+
+# ─── Failure hardening (Capstone, Shape B) ───
+REQUEST_TIMEOUT = 20            # Longest a single model call may take before it is treated as failed (seconds).
+TRANSIENT_MAX_RETRIES = 3       # timeouts, 503s, dropped connections and empty replies
 
 
 # ─── Paths ───────────────────────────────────────────────────────────────────
