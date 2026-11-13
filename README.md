@@ -924,11 +924,30 @@ No criterion is currently missed. What remains are gaps outside the five criteri
 
 ### Run Log — Before
 
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. A temporary model failure recovers | 3 of 3 trials |  |  |  |  |
+| 2. A persistent model failure ends with a readable error, in time | 3 of 3 trials |  |  |  |  |
+| 3. Retries never exceed the limit | 3 of 3 trials |  |  |  |  |
+| 4. A hung call or an empty reply is treated as a failure | 3 of 3 trials per case |  |  |  |  |
+| 5. Every request writes one valid log entry, including failures | 3 of 3 batches |  |  |  |  |
+
+
+
 ### Verdicts and Diagnoses
 
 ### The Improvement
 
 ### Run Log — After
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. A temporary model failure recovers | 3 of 3 trials |  |  |  |  |
+| 2. A persistent model failure ends with a readable error, in time | 3 of 3 trials |  |  |  |  |
+| 3. Retries never exceed the limit | 3 of 3 trials |  |  |  |  |
+| 4. A hung call or an empty reply is treated as a failure | 3 of 3 trials per case |  |  |  |  |
+| 5. Every request writes one valid log entry, including failures | 3 of 3 batches |  |  |  |  |
+
 
 ### What's Still Broken
 

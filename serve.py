@@ -53,29 +53,35 @@ from utils.data_loader import get_example_wardrobe
 app = Flask(__name__)
 
 # ── request log (Capstone, Shape B) ───────────────────────────────────────────
-# Every /ask request that reaches the agent, including failed ones, appends one
-# JSON line to logs/requests.jsonl: timestamp, input, output, error, status
-# ("ok", "stopped_early" or "failed"), duration_s and retry_count. retry_count
-# covers this process only; the MCP subprocess keeps its own counter.
+# Every /ask request, including rejected and failed ones, appends one JSON line
+# to logs/requests.jsonl: timestamp, query, output, error, status ("ok",
+# "stopped_early", "failed" or "bad_request"), duration_ms and attempts.
+# attempts is 1 plus the number of retries (0 when the request never reached
+# the agent). Retries cover this process only; the MCP subprocess keeps its
+# own counter.
 LOG_PATH = config.ROOT / "logs" / "requests.jsonl"
 
 
-def _log_request(query, session, failure, duration, retries):
+def _log_request(query, session, failure, duration, retries, rejected=None):
     """Append one log line. A logging problem must never break a response."""
-    if failure is not None:
-        status, output, error = "failed", None, failure
+    if rejected is not None:
+        status, output, error, attempts = "bad_request", None, rejected, 0
+    elif failure is not None:
+        status, output, error, attempts = "failed", None, failure, retries + 1
     elif session.get("error"):
-        status, output, error = "stopped_early", None, session["error"]
+        status, output, error, attempts = (
+            "stopped_early", None, session["error"], retries + 1)
     else:
-        status, output, error = "ok", session.get("fit_card"), None
+        status, output, error, attempts = (
+            "ok", session.get("fit_card"), None, retries + 1)
     entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "input": query,
+        "query": query,
         "output": output,
         "error": error,
         "status": status,
-        "duration_s": round(duration, 3),
-        "retry_count": retries,
+        "duration_ms": round(duration * 1000),
+        "attempts": attempts,
     }
     try:
         LOG_PATH.parent.mkdir(exist_ok=True)
@@ -143,12 +149,20 @@ def ask():
                                                 example wardrobe the CLI uses.
     Out:  the session dict from run_agent(), as JSON.
     """
-    payload = request.get_json(silent=True) or {}
-    query = (payload.get("query") or "").strip()
+    started_at = time.perf_counter()
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        payload = {}
+    raw_query = payload.get("query")
+    query = raw_query.strip() if isinstance(raw_query, str) else ""
     if not query:
         # 400 rather than a stack trace: the caller can act on this one.
-        return jsonify({"error": "Send JSON with a 'query' field, e.g. "
-                                 '{"query": "vintage graphic tee under $30"}'}), 400
+        message = ("Send JSON with a 'query' field, e.g. "
+                   '{"query": "vintage graphic tee under $30"}')
+        _log_request(raw_query if isinstance(raw_query, str) else None, None,
+                     None, time.perf_counter() - started_at, 0,
+                     rejected=message)
+        return jsonify({"error": message}), 400
 
     wardrobe = payload.get("wardrobe")
     if not isinstance(wardrobe, dict):
