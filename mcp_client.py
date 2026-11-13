@@ -28,6 +28,7 @@ right trade for one unit.
 
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -72,9 +73,13 @@ async def _call(name: str, arguments: dict):
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
+    # Pass the full environment down. By default the MCP client only forwards a
+    # handful of variables (PATH, HOME...), so on a host with no .env file the
+    # server subprocess would never see GEMINI_API_KEY.
     params = StdioServerParameters(
         command=sys.executable,
         args=[str(SERVER)],
+        env=dict(os.environ),
     )
 
     async with stdio_client(params) as (read, write):
