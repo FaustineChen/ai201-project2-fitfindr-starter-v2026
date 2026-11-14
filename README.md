@@ -926,15 +926,27 @@ No criterion is currently missed. What remains are gaps outside the five criteri
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. A temporary model failure recovers | 3 of 3 trials |  |  |  |  |
-| 2. A persistent model failure ends with a readable error, in time | 3 of 3 trials |  |  |  |  |
-| 3. Retries never exceed the limit | 3 of 3 trials |  |  |  |  |
-| 4. A hung call or an empty reply is treated as a failure | 3 of 3 trials per case |  |  |  |  |
-| 5. Every request writes one valid log entry, including failures | 3 of 3 batches |  |  |  |  |
-
-
+| 1. A temporary model failure recovers | 3 of 3 trials | 3/3 | 3/3 | 3/3 | MET |
+| 2. A persistent model failure ends with a readable error, in time | 3 of 3 trials | 0/3 | 0/3 | 0/3 | MISSED |
+| 3. Retries never exceed the limit | 3 of 3 trials | 3/3 | 3/3 | 3/3 | MET |
+| 4. A hung call or an empty reply is treated as a failure | 3 of 3 trials per case | hang 3/3 · empty 3/3 | hang 3/3 · empty 3/3 | hang 3/3 · empty 3/3 | MET |
+| 5. Every request writes one valid log entry, including failures | 3 of 3 batches | PASS (12/12 lines valid) | PASS (12/12 lines valid) | PASS (12/12 lines valid) | MET |
 
 ### Verdicts and Diagnoses
+
+**Produced by:** `capstone_eval.py`, file: `results/capstone_2026-11-13_1344_before.md`
+```bash
+python capstone_eval.py --label before
+```
+
+- Criteria 1, 3, 4, 5 — MET (3 runs, identical results).
+
+- Criterion 2 — MISSED (0/3 in every run).
+      - For all three persistent failures (503, dropped connection, empty reply), `POST /ask` returned **HTTP 500** instead of a session with a readable `error`.
+      - The error text itself was a readable sentence with no `Traceback`, so the miss is the status code.
+
+**Diagnosis:** `run_agent` in `agent.py` has no `try/except`. After the retries are used up, `generate()` raises `ModelUnavailable` from `suggest_outfit`. Nothing catches it, so it reaches the `except Exception` in `serve.py::ask`, which returns 500. The retry layer works (criterion 3 passed with 4 attempts); the gap is that the loop never turns the exception into `session["error"]`.
+
 
 ### The Improvement
 
