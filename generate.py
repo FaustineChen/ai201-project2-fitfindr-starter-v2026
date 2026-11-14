@@ -287,11 +287,15 @@ def _get_client():
         
         # HttpOptions.timeout is in milliseconds
         # applies to this client's every call
+        http_kwargs = {"timeout": int(config.REQUEST_TIMEOUT * 1000)}
+        # Test hook: capstone_eval.py points the client at a local stub server.
+        # Unset in normal use and on the deployed host, so nothing changes there.
+        base_url = os.getenv("MODEL_BASE_URL", "").strip()
+        if base_url:
+            http_kwargs["base_url"] = base_url
         _client = genai.Client(
             api_key=key,
-            http_options=types.HttpOptions(
-                timeout=int(config.REQUEST_TIMEOUT * 1000)
-            ),
+            http_options=types.HttpOptions(**http_kwargs),
         )
     return _client
 

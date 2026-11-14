@@ -18,7 +18,7 @@ from trace import step, start_trace, get_trace, check_iterations
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
 import re
-from mcp_client import call_tool
+from mcp_client import call_tool, MCPError
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -166,6 +166,24 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     start_trace()
 
     session = new_session(query, wardrobe)
+
+    # A model that keeps failing ends the run with a sentence in
+    # session["error"], not an exception. Otherwise serve.py turns it into a 500.
+    try:
+        return _plan_and_act(session)
+    except ModelUnavailable as exc:
+        session["error"] = str(exc)
+    except MCPError as exc:
+        # The fit card runs over MCP; keep the first line, drop the how-to-debug text.
+        session["error"] = f"The fit card step failed: {str(exc).splitlines()[0]}"
+
+    step("model unavailable", note=session["error"])
+    get_trace()
+    return session
+
+
+def _plan_and_act(session: dict) -> dict:
+    """The loop itself. Raises ModelUnavailable / MCPError; run_agent handles them."""
     state = "parse"
     count = 0
 

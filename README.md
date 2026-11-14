@@ -898,31 +898,62 @@ No criterion is currently missed. What remains are gaps outside the five criteri
 
 ## Capstone
 
-### The Shape
+**The Shape**
 
-**Shape B: harden against failure**, extending FitFindr's `serve.py` and `generate.py`. For now, only rate-limit (429) errors are retried, there is no timeout, and an empty model reply passes through silently. I'm adding a timeout on every model call, a bounded retry for temporary errors (timeouts, 503, dropped connections, empty replies), and a clear error message when the model keeps failing. Every request, including failed ones, writes a structured log entry with a timestamp, input, output, duration and retry count.
+*Shape B: harden against failure*, extending FitFindr's `serve.py` and `generate.py`. For now, only rate-limit (429) errors are retried, there is no timeout, and an empty model reply passes through silently. I'm adding a timeout on every model call, a bounded retry for temporary errors (timeouts, 503, dropped connections, empty replies), and a clear error message when the model keeps failing. Every request, including failed ones, writes a structured log entry with a timestamp, input, output, duration and retry count.
 
-**What's out of scope:**
+*What's out of scope:*
 
 - I'm not changing the planning loop, the tools, or the search and outfit logic.
 - I'm not adding a fallback model or a response cache for failures.
 - I'm not deploying to a host or adding a UI. Hosting is optional and only if time is left.
 
-### Measure the cost of one run
+**Running It**
+Deployed at https://ai201-project2-fitfindr-starter-v2026-h892.onrender.com (first request may take ~1 min to wake).
+Try: `curl -X POST https://<your-app>.onrender.com/ask -H 'Content-Type: application/json' -d '{"query": "vintage graphic tee under $30"}'`
+Local setup and all commands: [RUNNING.md](RUNNING.md).
+
 
 **Instrumentation**
 <!--Paste at least ten log entries
 -->
+Every request writes one JSON line to `logs/requests.jsonl` through `serve.py::_log_request`, with the fields `timestamp`, `query`, `output`, `error`, `status`, `duration_ms` and `attempts`. These are the ten lines written by the ten cost runs below (`measure_cost.py` calls `_log_request` itself after each run, because it bypasses `/ask`):
+
+```
+{"timestamp": "2026-11-14T03:55:56.220036+00:00", "query": "vintage graphic tee under $30", "output": "Scored this Y2K baby tee with the cutest butterfly print on depop for only $18.00. I am pairing it with baggy dark wash jeans and chunky white sneakers for the ultimate early 2000s streetwear vibe. It also looks so good layered under a vintage black denim jacket with wide-leg khakis for a casual contrast.", "error": null, "status": "ok", "duration_ms": 6151, "attempts": 1}
+{"timestamp": "2026-11-14T03:55:57.870832+00:00", "query": "vintage graphic tee under $30", "output": "I cannot stop thinking about the Y2K baby tee with the butterfly print that I just scored on Depop for $18.00. I am definitely styling it with baggy dark wash jeans, a cropped zip hoodie, and chunky sneakers for the ultimate early 2000s streetwear look. It also looks so good paired with wide leg khaki trousers and combat boots for a more contrasting vintage outfit.", "error": null, "status": "ok", "duration_ms": 1647, "attempts": 1}
+{"timestamp": "2026-11-14T03:55:59.851501+00:00", "query": "vintage graphic tee under $30", "output": "I finally scored this Y2K butterfly baby tee on Depop and I am obsessed. It only cost me $18.00 and the fit is genuinely so good. I am definitely styling it with baggy dark wash jeans and a cropped zip hoodie for a Y2K streetwear look.", "error": null, "status": "ok", "duration_ms": 1971, "attempts": 1}
+{"timestamp": "2026-11-14T03:56:01.677424+00:00", "query": "vintage graphic tee under $30", "output": "I am obsessed with this Y2K baby tee with the butterfly print that I just scored on Depop for $18.00. I am definitely styling it with baggy dark wash jeans and chunky sneakers for an effortless casual streetwear look. It also looks so good paired with wide-leg khaki trousers and combat boots for an edgy high-low mix.", "error": null, "status": "ok", "duration_ms": 1818, "attempts": 1}
+{"timestamp": "2026-11-14T03:56:03.363198+00:00", "query": "vintage graphic tee under $30", "output": "I am so obsessed with this Y2K butterfly print baby tee that I just scored on Depop for $18.00. I am definitely styling it with my baggy dark wash jeans and chunky white sneakers for the ultimate street style look. For a slightly edgier vibe, I will wear it with my cropped black denim jacket, wide leg khakis, and combat boots.", "error": null, "status": "ok", "duration_ms": 1676, "attempts": 1}
+{"timestamp": "2026-11-14T03:56:05.563952+00:00", "query": "vintage graphic tee under $30", "output": "I am still obsessing over this Y2K butterfly baby tee I just scored on depop for $18.00. I tucked it into some wide-leg khaki trousers with a brown leather belt to balance out the tight fit, and finished the look with chunky white sneakers for that perfect casual contrast. It gives off the ultimate early 2000s street style energy without trying too hard.", "error": null, "status": "ok", "duration_ms": 2192, "attempts": 1}
+{"timestamp": "2026-11-14T03:56:07.382931+00:00", "query": "vintage graphic tee under $30", "output": "I am obsessed with this Y2K baby tee I just scored on Depop for $18.00. I am definitely styling it with wide leg khaki trousers and a vintage black denim jacket for that perfect casual contrast. It is giving major early two-thousands streetwear energy and I cannot wait to wear it out this weekend.", "error": null, "status": "ok", "duration_ms": 1810, "attempts": 1}
+{"timestamp": "2026-11-14T03:56:55.098775+00:00", "query": "vintage graphic tee under $30", "output": "I am still obsessed with the Y2K baby tee with the butterfly print I just scored on depop for $18.00. Throwing it on with some baggy dark wash jeans and chunky white sneakers gives me the exact 2000s streetwear silhouette I was going for. I am definitely going to finish the whole fit with a black crossbody bag and a cropped zip hoodie just in case it gets chilly later.", "error": null, "status": "ok", "duration_ms": 47703, "attempts": 1}
+{"timestamp": "2026-11-14T03:56:57.660983+00:00", "query": "vintage graphic tee under $30", "output": "I literally cannot stop smiling after scoring this Y2K butterfly baby tee on depop for $18.00 today. I am definitely styling it with baggy dark jeans and a cropped zip hoodie for the ultimate Y2K streetwear moment. It also looks so good tucked into wide-leg khaki trousers for a more chill, earthy vibe.", "error": null, "status": "ok", "duration_ms": 2550, "attempts": 1}
+{"timestamp": "2026-11-14T03:56:59.494605+00:00", "query": "vintage graphic tee under $30", "output": "I just scored this Y2K baby tee on depop for $18.00 and I am completely obsessed with the butterfly print. I am definitely styling it with baggy dark wash jeans, chunky white sneakers, and a black crossbody bag for the ultimate Y2K streetwear vibe. When it gets colder, I can also throw on a vintage black denim jacket and black combat boots to create a really cool edgy contrast.", "error": null, "status": "ok", "duration_ms": 1831, "attempts": 1}
+```
+
+Most runs take about 1.6 to 2.6 seconds. The 47,703 ms entry (the eighth run) is not slow model time: it includes a 46 s wait from `generate.py`'s limit of 15 requests per minute. The first run (6,151 ms) was the first call after start-up.
 
 **What It Costs**
 
-**how you measured it**
+*$0.000742 per run*, measured over 10 runs: an average of 646.4 input tokens and 219.1 output tokens, over 2 model calls (`suggest_outfit` and `create_fit_card`). The prices I used are $0.30 per 1M input tokens and $2.50 per 1M output tokens.
+
+- Input: 646.4 × $0.30 ÷ 1,000,000 = $0.000194
+- Output: 219.1 × $2.50 ÷ 1,000,000 = $0.000548
+- Per run: $0.000194 + $0.000548 = **$0.000742**
+
+For 100 people a day, at one run each: 100 × $0.000742 = **$0.0742 per day**, about $2.23 per 30 days.
+
+*how you measured it*
 <!-- Run it ten times, take the average, and write down how you measured it. A number from the pricing page isn't a measurement.
 -->
+- ran `python measure_cost.py --input-price 0.3 --output-price 2.5`, which runs the query `vintage graphic tee under $30` ten times against the real model (`gemini-3.5-flash-lite`) with the cache turned off, so each run is a real call.
+- Each run calls `parse_query`, `search_listings`, `suggest_outfit` and `create_fit_card` in one process, and read `generate.py::token_counts()` before and after the run and subtract.
+- The token counts are what the service reported, not an estimate. Full per-run numbers are in `results/cost_2026-11-13_2256.md`.
 
-### How I Used AI
 
-### Run Log — Before
+**Run Log and Verdicts**
+*Run Log — Before*
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
@@ -932,9 +963,9 @@ No criterion is currently missed. What remains are gaps outside the five criteri
 | 4. A hung call or an empty reply is treated as a failure | 3 of 3 trials per case | hang 3/3 · empty 3/3 | hang 3/3 · empty 3/3 | hang 3/3 · empty 3/3 | MET |
 | 5. Every request writes one valid log entry, including failures | 3 of 3 batches | PASS (12/12 lines valid) | PASS (12/12 lines valid) | PASS (12/12 lines valid) | MET |
 
-### Verdicts and Diagnoses
+*Verdicts and Diagnoses*
 
-**Produced by:** `capstone_eval.py`, file: `results/capstone_2026-11-13_1344_before.md`
+Produced by: `capstone_eval.py`, file: `results/capstone_2026-11-13_1344_before.md`
 ```bash
 python capstone_eval.py --label before
 ```
@@ -945,28 +976,50 @@ python capstone_eval.py --label before
       - For all three persistent failures (503, dropped connection, empty reply), `POST /ask` returned **HTTP 500** instead of a session with a readable `error`.
       - The error text itself was a readable sentence with no `Traceback`, so the miss is the status code.
 
-**Diagnosis:** `run_agent` in `agent.py` has no `try/except`. After the retries are used up, `generate()` raises `ModelUnavailable` from `suggest_outfit`. Nothing catches it, so it reaches the `except Exception` in `serve.py::ask`, which returns 500. The retry layer works (criterion 3 passed with 4 attempts); the gap is that the loop never turns the exception into `session["error"]`.
+Diagnosis: `run_agent` in `agent.py` has no `try/except`. After the retries are used up, `generate()` raises `ModelUnavailable` from `suggest_outfit`. Nothing catches it, so it reaches the `except Exception` in `serve.py::ask`, which returns 500. The retry layer works (criterion 3 passed with 4 attempts); the gap is that the loop never turns the exception into `session["error"]`.
+
+**The Improvement**
+*The change.* In `agent.py`, `run_agent` now wraps the planning loop (moved unchanged into `_plan_and_act`) in a `try/except`. When the model keeps failing, `ModelUnavailable` (from `suggest_outfit`) or `MCPError` (from the fit-card step) is caught and its message goes into `session["error"]`, a trace step is written, and the session is returned.
+
+*Why this change.* The diagnosis was that the retry layer worked but nothing turned its final exception into a result, so `serve.py::ask` returned HTTP 500. Catching it where the session lives fixes that without touching the retry code in `generate.py`, which criteria 1, 3 and 4 already confirmed was correct.
 
 
-### The Improvement
-
-### Run Log — After
+**Run Log — After**
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. A temporary model failure recovers | 3 of 3 trials |  |  |  |  |
-| 2. A persistent model failure ends with a readable error, in time | 3 of 3 trials |  |  |  |  |
-| 3. Retries never exceed the limit | 3 of 3 trials |  |  |  |  |
-| 4. A hung call or an empty reply is treated as a failure | 3 of 3 trials per case |  |  |  |  |
-| 5. Every request writes one valid log entry, including failures | 3 of 3 batches |  |  |  |  |
+| 1. A temporary model failure recovers | 3 of 3 trials | 3/3 | 3/3 | 3/3 | MET |
+| 2. A persistent model failure ends with a readable error, in time | 3 of 3 trials | 3/3 | 3/3 | 3/3 | MET |
+| 3. Retries never exceed the limit | 3 of 3 trials | 3/3 | 3/3 | 3/3 | MET |
+| 4. A hung call or an empty reply is treated as a failure | 3 of 3 trials per case | hang 3/3 · empty 3/3 | hang 3/3 · empty 3/3 | hang 3/3 · empty 3/3 | MET |
+| 5. Every request writes one valid log entry, including failures | 3 of 3 batches | PASS (12/12 lines valid) | PASS (12/12 lines valid) | PASS (12/12 lines valid) | MET |
+
+**What's Still Broken**
+
+All five criteria are MET in the after run. What follows is what the tests do not cover.
+
+- The fit-card failure path is untested.
+      - In every persistent-failure trial, `suggest_outfit` failed first, so the `MCPError` branch I added in `run_agent` never ran.
+      - It is written from reading `mcp_client.py`, not from a run. A stub script like `["ok", "503"]` would exercise it.
+- Retries inside the MCP subprocess are not counted in `attempts`.
+      - The fit card is generated in a separate process with its own retry counter, so a request that retries only there logs `attempts` = 1.
+      - Criterion 3 passes because the first model call is in the main process, but the log undercounts in that case.
+-  Mixed failures within one request (a 503, then a dropped connection, then a hang) were not tested.
 
 
-### What's Still Broken
+**How I Used AI**
 
+*Moment 1*
 
+- What I asked for: Why a persistent model failure made `/ask` return HTTP 500 instead of a session with a readable `error` (criterion 2 MISSED).
+- What came back: `run_agent` has no `try/except`, so `ModelUnavailable` reached the `except Exception` in `serve.py::ask`. Claude suggested catching it in `run_agent`.
+- What I changed: I wrapped the planning loop (moved into `_plan_and_act`) in a `try/except` in `run_agent` and left the retry code in `generate.py` alone, since criteria 1, 3 and 4 already showed it was correct.
 
+*Moment 2*
 
-
+- What I asked for: What the tests still do not cover after all five criteria were MET.
+- What came back: The `MCPError` branch never ran, because `suggest_outfit` always failed first. Retries inside the MCP subprocess are also not counted in `attempts`.
+- What I changed: I did not write "all passed". I listed both gaps, plus untested mixed failures, under What's Still Broken, and noted that the `MCPError` branch is written from reading `mcp_client.py`, not from a run.
 
 
 📖 **How to run this project: [RUNNING.md](RUNNING.md)**
